@@ -21,29 +21,43 @@ def run_command(command):
         logging.error(f"Ausnahme aufgetreten: {e}")
         return None
 
-# Bluetooth-Scan
-def bluetooth_scan(save_to_file=False):
+# Bluetooth-Geräte scannen und Liste zurückgeben
+def scan_devices():
     logging.info("Starte Bluetooth-Scan...")
     print("[+] Scanne nach Bluetooth-Geräten...")
     output = run_command("ubertooth-scan")
     if output:
-        print(output)
-        if save_to_file:
-            with open("bluetooth_devices.txt", "w") as f:
-                f.write(output)
-            logging.info("Scan-Ergebnisse in bluetooth_devices.txt gespeichert.")
+        devices = []
+        for line in output.splitlines():
+            if "MAC:" in line:
+                mac = line.split("MAC:")[1].strip().split()[0]
+                name = line.split("Name:")[1].strip() if "Name:" in line else "Unbekannt"
+                devices.append((mac, name))
+        return devices
     else:
         print("[!] Scan fehlgeschlagen.")
+        return []
 
-# Bluetooth Low Energy (BLE) Scan
-def ble_scan():
-    logging.info("Starte BLE-Scan...")
-    print("[+] Scanne nach BLE-Geräten...")
-    output = run_command("hcitool lescan")
-    if output:
-        print(output)
-    else:
-        print("[!] BLE-Scan fehlgeschlagen.")
+# Gerät auswählen
+def select_device(devices):
+    if not devices:
+        print("[!] Keine Geräte gefunden.")
+        return None
+
+    print("\nGefundene Geräte:")
+    for i, (mac, name) in enumerate(devices):
+        print(f"{i + 1}) MAC: {mac}, Name: {name}")
+
+    try:
+        choice = int(input("Wähle ein Gerät (Nummer): ")) - 1
+        if 0 <= choice < len(devices):
+            return devices[choice][0]  # Rückgabe der MAC-Adresse
+        else:
+            print("[!] Ungültige Auswahl.")
+            return None
+    except ValueError:
+        print("[!] Ungültige Eingabe.")
+        return None
 
 # Sniffing auf einem bestimmten Kanal
 def bluetooth_sniff(channel=39):
@@ -115,7 +129,43 @@ def bluetooth_sniff_audio():
     else:
         print("[!] Audio-Sniffing fehlgeschlagen.")
 
-# Interaktives Menü
+# Menü für ausgewähltes Gerät
+def device_menu(target_addr):
+    while True:
+        print(f"\nGerät ausgewählt: {target_addr}")
+        print("1) Sniffing starten")
+        print("2) Jamming starten")
+        print("3) Gerät verfolgen")
+        print("4) Datei senden")
+        print("5) Datei empfangen")
+        print("6) Signalstärke messen")
+        print("7) Audio-Pakete sniffen")
+        print("8) Zurück zum Hauptmenü")
+        choice = input("Wähle eine Option: ")
+
+        if choice == "1":
+            channel = input("Gib den Kanal ein (Standard: 39): ")
+            bluetooth_sniff(int(channel) if channel else 39)
+        elif choice == "2":
+            bluetooth_jam()
+        elif choice == "3":
+            bluetooth_follow(target_addr)
+        elif choice == "4":
+            file_path = input("Gib den Pfad zur Datei ein: ")
+            bluetooth_send_file(target_addr, file_path)
+        elif choice == "5":
+            save_path = input("Gib das Speicherverzeichnis ein: ")
+            bluetooth_receive_file(save_path)
+        elif choice == "6":
+            bluetooth_rssi(target_addr)
+        elif choice == "7":
+            bluetooth_sniff_audio()
+        elif choice == "8":
+            break
+        else:
+            print("Ungültige Eingabe, bitte erneut versuchen.")
+
+# Hauptmenü
 def show_menu():
     setup_logging()
     print("WARNUNG: Dieses Tool darf nur in Umgebungen verwendet werden, in denen du die ausdrückliche Erlaubnis hast.")
@@ -124,44 +174,16 @@ def show_menu():
 
     while True:
         print("\nUbertooth All-in-One Bluetooth Hacking Tool")
-        print("1) Bluetooth-Scan")
-        print("2) BLE-Scan")
-        print("3) Sniffing starten")
-        print("4) Jamming starten")
-        print("5) Gerät verfolgen")
-        print("6) Datei senden")
-        print("7) Datei empfangen")
-        print("8) Signalstärke messen")
-        print("9) Audio-Pakete sniffen")
-        print("10) Beenden")
+        print("1) Bluetooth-Geräte scannen")
+        print("2) Beenden")
         choice = input("Wähle eine Option: ")
 
         if choice == "1":
-            save = input("Ergebnisse speichern? (y/n): ").lower() == "y"
-            bluetooth_scan(save_to_file=save)
+            devices = scan_devices()
+            target_addr = select_device(devices)
+            if target_addr:
+                device_menu(target_addr)
         elif choice == "2":
-            ble_scan()
-        elif choice == "3":
-            channel = input("Gib den Kanal ein (Standard: 39): ")
-            bluetooth_sniff(int(channel) if channel else 39)
-        elif choice == "4":
-            bluetooth_jam()
-        elif choice == "5":
-            target = input("Gib die MAC-Adresse des Geräts ein: ")
-            bluetooth_follow(target)
-        elif choice == "6":
-            target = input("Gib die MAC-Adresse des Zielgeräts ein: ")
-            file_path = input("Gib den Pfad zur Datei ein: ")
-            bluetooth_send_file(target, file_path)
-        elif choice == "7":
-            save_path = input("Gib das Speicherverzeichnis ein: ")
-            bluetooth_receive_file(save_path)
-        elif choice == "8":
-            target = input("Gib die MAC-Adresse des Geräts ein: ")
-            bluetooth_rssi(target)
-        elif choice == "9":
-            bluetooth_sniff_audio()
-        elif choice == "10":
             print("Beende das Programm...")
             break
         else:
