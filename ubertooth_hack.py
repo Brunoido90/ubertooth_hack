@@ -58,37 +58,59 @@ def bluetooth_sniff_audio():
     output = run_command("ubertooth-btbr -f")
     print(output)
 
+def show_menu():
+    """Zeigt ein interaktives Menü für die Benutzersteuerung."""
+    while True:
+        print("\nUbertooth All-in-One Bluetooth Hacking Tool")
+        print("1) Bluetooth-Scan")
+        print("2) Sniffing starten")
+        print("3) Jamming starten")
+        print("4) Gerät verfolgen")
+        print("5) Datei senden")
+        print("6) Datei empfangen")
+        print("7) Signalstärke messen")
+        print("8) Audio-Pakete sniffen")
+        print("9) Beenden")
+        choice = input("Wähle eine Option: ")
+
+        if choice == "1":
+            bluetooth_scan()
+        elif choice == "2":
+            channel = input("Gib den Kanal ein (Standard: 39): ")
+            bluetooth_sniff(int(channel) if channel else 39)
+        elif choice == "3":
+            bluetooth_jam()
+        elif choice == "4":
+            target = input("Gib die MAC-Adresse des Geräts ein: ")
+            bluetooth_follow(target)
+        elif choice == "5":
+            target = input("Gib die MAC-Adresse des Zielgeräts ein: ")
+            file_path = input("Gib den Pfad zur Datei ein: ")
+            bluetooth_send_file(target, file_path)
+        elif choice == "6":
+            save_path = input("Gib das Speicherverzeichnis ein: ")
+            bluetooth_receive_file(save_path)
+        elif choice == "7":
+            target = input("Gib die MAC-Adresse des Geräts ein: ")
+            bluetooth_rssi(target)
+        elif choice == "8":
+            bluetooth_sniff_audio()
+        elif choice == "9":
+            print("Beende das Programm...")
+            break
+        else:
+            print("Ungültige Eingabe, bitte erneut versuchen.")
+
 def main():
     parser = argparse.ArgumentParser(description="Ubertooth All-in-One Bluetooth Hacking Tool")
-    parser.add_argument("-s", "--scan", action="store_true", help="Bluetooth-Scan starten")
-    parser.add_argument("-n", "--sniff", type=int, help="Bluetooth-Sniffing auf bestimmtem Kanal")
-    parser.add_argument("-j", "--jam", action="store_true", help="Bluetooth-Jamming starten")
-    parser.add_argument("-f", "--follow", type=str, help="Einem bestimmten Gerät folgen")
-    parser.add_argument("--send", nargs=2, metavar=('TARGET', 'FILE'), help="Datei an ein Gerät senden")
-    parser.add_argument("--receive", type=str, help="Eingehende Datei empfangen und speichern")
-    parser.add_argument("--rssi", type=str, help="Signalstärke eines Geräts messen")
-    parser.add_argument("--audio-sniff", action="store_true", help="Audio-Pakete sniffen")
+    parser.add_argument("-m", "--menu", action="store_true", help="Interaktives Menü starten")
     
     args = parser.parse_args()
     
-    if args.scan:
-        bluetooth_scan()
-    elif args.sniff:
-        bluetooth_sniff(args.sniff)
-    elif args.jam:
-        bluetooth_jam()
-    elif args.follow:
-        bluetooth_follow(args.follow)
-    elif args.send:
-        bluetooth_send_file(args.send[0], args.send[1])
-    elif args.receive:
-        bluetooth_receive_file(args.receive)
-    elif args.rssi:
-        bluetooth_rssi(args.rssi)
-    elif args.audio_sniff:
-        bluetooth_sniff_audio()
+    if args.menu:
+        show_menu()
     else:
-        print("[!] Kein Befehl angegeben. Nutze --help für Optionen.")
+        print("[!] Kein Befehl angegeben. Nutze --menu für das interaktive Menü.")
 
 if __name__ == "__main__":
     main()
