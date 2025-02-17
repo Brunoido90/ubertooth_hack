@@ -1,27 +1,90 @@
 Ubertooth All-in-One Bluetooth Hacking Tool
-Dieses Tool nutzt Ubertooth-One zur Analyse, Überwachung und Manipulation von Bluetooth Classic (BR/EDR) und Bluetooth Low Energy (BLE). Es kombiniert mehrere Ubertooth-Funktionen in einem einzigen, einfach zu bedienenden Python-Skript.
+Dieses Python-Skript ist ein All-in-One-Tool für die Interaktion mit Bluetooth-Geräten unter Verwendung der Ubertooth-Hardware. Es bietet eine benutzerfreundliche, menübasierte Schnittstelle, um verschiedene Bluetooth-Hacking-Aktionen durchzuführen, wie z. B. Scannen, Sniffing, Jamming, Dateiübertragung und mehr. Das Tool ist darauf ausgelegt, die Arbeit mit Bluetooth-Geräten zu vereinfachen, indem es automatisch Geräte scannt und es dem Benutzer ermöglicht, ein Gerät aus einer Liste auszuwählen, ohne die MAC-Adresse manuell eingeben zu müssen.
 
-🔧 Funktionen
-✅ Bluetooth-Scanning (--scan) – Erkennt alle sichtbaren Bluetooth-Geräte
-✅ Packet Sniffing (--sniff [Kanal]) – Fängt Bluetooth-Pakete auf einem bestimmten Kanal ab
-✅ Jamming (Denial-of-Service) (--jam) – Stört Bluetooth-Kommunikation gezielt
-✅ Geräte verfolgen (--follow [MAC]) – Überwacht den Verkehr eines bestimmten Geräts
-✅ Datei senden (--send [MAC] [FILE]) – Sendet eine Datei an ein Bluetooth-Gerät
-✅ Datei empfangen (--receive [PFAD]) – Wartet auf eine eingehende Datei
-✅ Signalstärke-Messung (RSSI) (--rssi [MAC]) – Misst die Signalstärke eines Geräts (Tracking)
-✅ Audio-Pakete sniffen (--audio-sniff) – Fängt Bluetooth-Audio-Daten zur Analyse ab
+Funktionen
+Bluetooth-Geräte scannen:
 
-📌 Installation
-Installiere Ubertooth-Tools & Abhängigkeiten:
+Scannt nach sichtbaren Bluetooth-Geräten in der Umgebung.
+
+Zeigt eine Liste der gefundenen Geräte mit MAC-Adresse und Namen an.
+
+Geräteauswahl:
+
+Der Benutzer kann ein Gerät aus der Liste auswählen, ohne die MAC-Adresse manuell eingeben zu müssen.
+
+Sniffing:
+
+Snifft Bluetooth-Pakete auf einem bestimmten Kanal (Standard: Kanal 39).
+
+Jamming:
+
+Stört die Bluetooth-Kommunikation durch gezieltes Senden von Paketen.
+
+Gerät verfolgen:
+
+Verfolgt ein bestimmtes Bluetooth-Gerät und zeigt dessen Aktivität an.
+
+Datei senden:
+
+Versucht, eine Datei an ein ausgewähltes Bluetooth-Gerät zu senden.
+
+Datei empfangen:
+
+Versucht, eine Datei von einem Bluetooth-Gerät zu empfangen.
+
+Signalstärke messen (RSSI):
+
+Misst die Signalstärke eines Bluetooth-Geräts, um es zu verfolgen.
+
+Audio-Pakete sniffen:
+
+Snifft Bluetooth-Audio-Pakete (erfordert manuelle Analyse).
+
+Benutzerfreundliches Menü:
+
+Ein interaktives Menü führt den Benutzer durch die verfügbaren Optionen.
+
+Wie man das Tool verwendet
+Voraussetzungen:
+
+Ubertooth-Hardware und die entsprechenden Tools (ubertooth, hcitool, obexftp, obexftpd).
+
+Python 3 muss installiert sein.
+
+Skript ausführen:
+
 bash
-Kopieren
-Bearbeiten
-sudo apt install ubertooth obexftp obexftpd
-Führe das Tool aus:
+Copy
+python3 ubertooth_tool.py --menu
+Menüoptionen:
+
+Bluetooth-Geräte scannen: Scannt nach Geräten und zeigt eine Liste an.
+
+Gerät auswählen: Wähle ein Gerät aus der Liste aus.
+
+Aktionen ausführen: Nach der Auswahl eines Geräts kannst du Sniffing, Jamming, Datei senden/empfangen usw. durchführen.
+
+Beispielablauf
+Skript starten:
+
 bash
-Kopieren
-Bearbeiten
-python3 ubertooth_hack.py --scan
-⚠ Rechtlicher Hinweis
-Dieses Tool ist ausschließlich für Sicherheitsforschung & Penetration-Testing in autorisierten Umgebungen gedacht.
-Missbrauch ist illegal! Nutze es nur mit Erlaubnis.
+Copy
+python3 ubertooth_tool.py --menu
+Bluetooth-Geräte scannen:
+
+Wähle Option 1, um nach Geräten zu scannen.
+
+Das Skript zeigt eine Liste der gefundenen Geräte an.
+
+Gerät auswählen:
+
+Wähle ein Gerät aus der Liste (z. B. 1 für das erste Gerät).
+
+Aktion auswählen:
+
+Wähle eine Aktion aus dem Untermenü (z. B. 1 für Sniffing).
+
+Wichtige Hinweise
+Ethik und Rechtliches:
+
+Dieses Tool darf nur in autorisierten Umgebungen verwendet werden. Der Missbrauch von Bluetooth-Hacking-Tools kann rechtliche Konsequenzen haben. Stelle sicher, dass du die Erlaubnis hast, die Geräte zu scannen oder zu manipulieren, bevor du dieses Tool verwendest.
