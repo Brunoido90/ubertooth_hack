@@ -79,7 +79,7 @@ Bestätige mit Enter, um den Angriff zu stoppen.
 Nutze dieses Tool nur auf eigenen Geräten oder mit ausdrücklicher Genehmigung.
 
 📌 GitHub-Repo
-🔗 https://github.com/deinusername/ubertooth-evil-toolkit
+🔗 https://github.com/Brunoido90/ubertooth_hack
 
 Füge eine README.md und requirements.txt hinzu, um die Installation zu vereinfachen.
 
