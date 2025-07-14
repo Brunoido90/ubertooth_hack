@@ -1,103 +1,89 @@
-Ubertooth All-in-One Bluetooth Hacking Tool
-🔍 Ein leistungsstarkes Python-Tool für Bluetooth-Hacking mit Ubertooth
+Ubertooth One Evil Toolkit 🔥📻
+Ein mächtiges Python-Toolkit für Bluetooth-Angriffe mit dem Ubertooth One, inklusive Live-Audio-Hijacking, MP3-Injection und Jamming-Funktionen. Entwickelt für Sicherheitsforschung und pentesting.
 
-Dieses Projekt ist ein All-in-One-Tool für die Interaktion mit Bluetooth-Geräten unter Verwendung der Ubertooth-Hardware. Es bietet eine benutzerfreundliche, menübasierte Schnittstelle, um verschiedene Bluetooth-Hacking-Aktionen durchzuführen, wie z. B. Scannen, Sniffing, Jamming, Dateiübertragung und mehr. Das Tool ist darauf ausgelegt, die Arbeit mit Bluetooth-Geräten zu vereinfachen, indem es automatisch Geräte scannt und es dem Benutzer ermöglicht, ein Gerät aus einer Liste auszuwählen, ohne die MAC-Adresse manuell eingeben zu müssen.
-
-✨ Funktionen
-1. Bluetooth-Geräte scannen
-Scannt nach sichtbaren Bluetooth-Geräten in der Umgebung.
-
-Zeigt eine Liste der gefundenen Geräte mit MAC-Adresse und Namen an.
-
-2. Geräteauswahl
-Wähle ein Gerät aus der Liste aus – keine manuelle Eingabe der MAC-Adresse erforderlich.
-
-3. Sniffing
-Snifft Bluetooth-Pakete auf einem bestimmten Kanal (Standard: Kanal 39).
-
-4. Jamming
-Stört die Bluetooth-Kommunikation durch gezieltes Senden von Paketen.
-
-5. Gerät verfolgen
-Verfolgt ein bestimmtes Bluetooth-Gerät und zeigt dessen Aktivität an.
-
-6. Datei senden
-Versucht, eine Datei an ein ausgewähltes Bluetooth-Gerät zu senden.
-
-7. Datei empfangen
-Versucht, eine Datei von einem Bluetooth-Gerät zu empfangen.
-
-8. Signalstärke messen (RSSI)
-Misst die Signalstärke eines Bluetooth-Geräts, um es zu verfolgen.
-
-9. Audio-Pakete sniffen
-Snifft Bluetooth-Audio-Pakete (erfordert manuelle Analyse).
-
-10. Benutzerfreundliches Menü
-Ein interaktives Menü führt den Benutzer durch die verfügbaren Optionen.
-
-🚀 Wie man das Tool verwendet
+📥 Installation
 Voraussetzungen
-Ubertooth-Hardware und die entsprechenden Tools (ubertooth, hcitool, obexftp, obexftpd).
+Hardware: Ubertooth One
 
-Python 3 muss installiert sein.
+Betriebssystem: Linux (getestet auf Kali Linux, Ubuntu)
 
-Skript ausführen
+Python: 3.6+
+
+Root-Zugriff erforderlich
+
+1. Abhängigkeiten installieren
 bash
-Copy
-python3 ubertooth_tool.py --menu
-Menüoptionen
-Bluetooth-Geräte scannen: Scannt nach Geräten und zeigt eine Liste an.
+# Installiere notwendige System-Tools
+sudo apt update
+sudo apt install -y \
+    ubertooth \
+    bluez \
+    sox \
+    libsox-fmt-mp3 \
+    python3-pip \
+    git
 
-Gerät auswählen: Wähle ein Gerät aus der Liste aus.
-
-Aktionen ausführen: Nach der Auswahl eines Geräts kannst du Sniffing, Jamming, Datei senden/empfangen usw. durchführen.
-
-📋 Beispielablauf
-Skript starten:
+# Python-Module
+pip3 install colorama
+2. Tool herunterladen
+bash
+git clone https://github.com/deinusername/ubertooth-evil-toolkit.git
+cd ubertooth-evil-toolkit
+chmod +x uber_evil.py
+3. Ausführen
+bash
+sudo python3 uber_evil.py
+🔧 Funktionsübersicht
+Funktion	Beschreibung
+Bluetooth-Scanning	Findet alle sichtbaren Bluetooth- und BLE-Geräte in Reichweite.
+Live-Audio-Hijack	Hört Gespräche über Bluetooth-Headsets in Echtzeit ab und zeichnet sie auf.
+MP3-Injection	Spielt eine eigene MP3-Datei auf dem Zielgerät ab (HSP/HFP).
+Channel-Jamming	Stört gezielt Bluetooth- oder WiFi-Kanäle (DoS).
+Firmware-Flash	Flasht die Firmware des Ubertooth (Notfall-Reset).
+⚡ Verwendung
+Geräte scannen
 
 bash
-Copy
-python3 ubertooth_tool.py --menu
-Bluetooth-Geräte scannen:
+sudo python3 uber_evil.py
+Wähle Option 1 zum Scannen.
 
-Wähle Option 1, um nach Geräten zu scannen.
+Live-Audio abhören
 
-Das Skript zeigt eine Liste der gefundenen Geräte an.
+Wähle ein Zielgerät aus der Liste.
 
-Gerät auswählen:
+Wähle "Live Audio Hijack" (Option 1).
 
-Wähle ein Gerät aus der Liste (z. B. 1 für das erste Gerät).
+Die Aufnahme wird automatisch als .wav gespeichert.
 
-Aktion ausführen:
+MP3-Datei injizieren
 
-Wähle eine Aktion aus dem Untermenü (z. B. 1 für Sniffing).
+Wähle "Inject MP3 to Target" (Option 2).
 
-⚠️ Wichtige Hinweise
-Ethik und Rechtliches:
+Gib die BD_ADDR des Ziels ein (z. B. 01:23:45:67:89:AB).
 
-Dieses Tool darf nur in autorisierten Umgebungen verwendet werden. Der Missbrauch von Bluetooth-Hacking-Tools kann rechtliche Konsequenzen haben. Stelle sicher, dass du die Erlaubnis hast, die Geräte zu scannen oder zu manipulieren, bevor du dieses Tool verwendest.
+Wähle eine MP3-Datei aus.
 
-Logging:
+Das Zielgerät spielt jetzt deine Audio ab!
 
-Das Skript protokolliert alle Aktionen in einer Log-Datei (bluetooth_tool.log), um die Nachverfolgung und Analyse zu erleichtern.
+Bluetooth stören (Jamming)
 
-🔧 Erweiterungsmöglichkeiten
-Bluetooth Low Energy (BLE) Unterstützung:
+Wähle "Channel Jamming" (Option 3).
 
-Integration von BLE-Scanning und -Sniffing.
+Bestätige mit Enter, um den Angriff zu stoppen.
 
-Grafische Benutzeroberfläche (GUI):
+⚠️ Rechtlicher Hinweis
+❌ Nur für autorisierte Sicherheitstests!
+❌ Illegal, wenn ohne Erlaubnis verwendet!
+❌ Kann Bluetooth-Geräte stören oder beschädigen.
 
-Erstellung einer GUI mit tkinter oder PyQt für eine noch benutzerfreundlichere Bedienung.
+Nutze dieses Tool nur auf eigenen Geräten oder mit ausdrücklicher Genehmigung.
 
-Automatische Kanalauswahl:
+📌 GitHub-Repo
+🔗 https://github.com/deinusername/ubertooth-evil-toolkit
 
-Implementierung einer Logik, um den besten Kanal für das Sniffing automatisch auszuwählen.
+Füge eine README.md und requirements.txt hinzu, um die Installation zu vereinfachen.
 
-Docker-Unterstützung:
+🛡️ Verantwortungsvolle Nutzung
+Dieses Projekt dient ausschließlich Forschungszwecken. Der Autor übernimmt keine Haftung für Missbrauch.
 
-Bereitstellung eines Docker-Containers, der alle benötigten Tools enthält.
-
-🤝 Beitragen
-Falls du Verbesserungsvorschläge hast oder neue Funktionen hinzufügen möchtest, freue ich mich über deine Pull Requests! Bitte stelle sicher, dass deine Änderungen gut dokumentiert und getestet sind.
+Happy (ethical) Hacking! 🚀🔊
