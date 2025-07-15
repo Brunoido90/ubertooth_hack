@@ -1,89 +1,97 @@
-Ubertooth One Evil Toolkit 🔥📻
-Ein mächtiges Python-Toolkit für Bluetooth-Angriffe mit dem Ubertooth One, inklusive Live-Audio-Hijacking, MP3-Injection und Jamming-Funktionen. Entwickelt für Sicherheitsforschung und pentesting.
+📌 Ubertooth Ultimate Toolkit – Übersicht & Setup
+Dieses Python-Skript ist ein All-in-One-Tool für Bluetooth- und BLE-Hacking mit einem Ubertooth One (einem speziellen RF-Sniffer). Es bietet eine menübasierte CLI zum Scannen, Sniffen und Angreifen von Bluetooth-Geräten.
 
-📥 Installation
-Voraussetzungen
-Hardware: Ubertooth One
+📋 Hauptfunktionen
+Bluetooth Classic Sniffing (ACL-Daten, Voice Calls)
 
-Betriebssystem: Linux (getestet auf Kali Linux, Ubuntu)
+BLE (Bluetooth Low Energy) Angriffe (Advertisement Sniffing, Follow-Mode)
 
-Python: 3.6+
+Custom Attacks (BLE-Spam, Audio-Injection, WiFi/BT-Interferenz)
 
-Root-Zugriff erforderlich
+Spectrum Analyzer (2.4GHz-Frequenzanalyse)
 
-1. Abhängigkeiten installieren
+Firmware-Recovery (Ubertooth-Reset)
+
+⚙️ Benötigte Hardware & Module
+📌 Hardware
+Ubertooth One (oder kompatibles Gerät)
+
+Linux-PC (Kali Linux empfohlen)
+
+📌 Python-Module
 bash
-# Installiere notwendige System-Tools
-sudo apt update
-sudo apt install -y \
-    ubertooth \
-    bluez \
-    sox \
-    libsox-fmt-mp3 \
-    python3-pip \
-    git
-
-# Python-Module
-pip3 install colorama
-2. Tool herunterladen
+pip install colorama pyusb
+📌 System-Tools (apt install)
 bash
-git clone https://github.com/deinusername/ubertooth-evil-toolkit.git
-cd ubertooth-evil-toolkit
-chmod +x uber_evil.py
-3. Ausführen
-bash
-sudo python3 uber_evil.py
-🔧 Funktionsübersicht
-Funktion	Beschreibung
-Bluetooth-Scanning	Findet alle sichtbaren Bluetooth- und BLE-Geräte in Reichweite.
-Live-Audio-Hijack	Hört Gespräche über Bluetooth-Headsets in Echtzeit ab und zeichnet sie auf.
-MP3-Injection	Spielt eine eigene MP3-Datei auf dem Zielgerät ab (HSP/HFP).
-Channel-Jamming	Stört gezielt Bluetooth- oder WiFi-Kanäle (DoS).
-Firmware-Flash	Flasht die Firmware des Ubertooth (Notfall-Reset).
-⚡ Verwendung
-Geräte scannen
+sudo apt install ubertooth libubertooth-dev libbtbb-dev sox hcitool
+(Je nach Distro können Paketnamen variieren.)
 
-bash
-sudo python3 uber_evil.py
-Wähle Option 1 zum Scannen.
+🔧 Funktionsweise
+Root-Check: Läuft nur mit sudo (wegen USB-Zugriff).
 
-Live-Audio abhören
+Ubertooth-Erkennung: Prüft, ob das Gerät angeschlossen ist.
 
-Wähle ein Zielgerät aus der Liste.
+Interaktives Menü:
 
-Wähle "Live Audio Hijack" (Option 1).
+Scanning: Findet Bluetooth-/BLE-Geräte in der Nähe.
 
-Die Aufnahme wird automatisch als .wav gespeichert.
+Sniffing: Fängt Datenverkehr ab (ACL, Voice, BLE).
 
-MP3-Datei injizieren
+Jamming: Stört Bluetooth-Kanäle (⚠️ illegal in vielen Ländern!).
 
-Wähle "Inject MP3 to Target" (Option 2).
+Custom Attacks:
 
-Gib die BD_ADDR des Ziels ein (z. B. 01:23:45:67:89:AB).
+BLE-Spam: Erzeugt Fake-Geräte.
 
-Wähle eine MP3-Datei aus.
+Audio-Injection: Spielt Audio auf Zielgeräten ab (theoretisch).
 
-Das Zielgerät spielt jetzt deine Audio ab!
+Clean Exit: Beendet alle Prozesse sauber (Strg+C unterstützt).
 
-Bluetooth stören (Jamming)
+⚠️ Wichtige Hinweise
+Nur für legale Sicherheitstests!
 
-Wähle "Channel Jamming" (Option 3).
+Jamming/Audio-Injection kann strafbar sein!
 
-Bestätige mit Enter, um den Angriff zu stoppen.
+Nicht alle Funktionen funktionieren mit jedem Bluetooth-Chipset.
 
-⚠️ Rechtlicher Hinweis
-❌ Nur für autorisierte Sicherheitstests!
-❌ Illegal, wenn ohne Erlaubnis verwendet!
-❌ Kann Bluetooth-Geräte stören oder beschädigen.
+🚀 GitHub-ReadMe-Empfehlung
+Füge diese Infos in dein README.md ein:
 
-Nutze dieses Tool nur auf eigenen Geräten oder mit ausdrücklicher Genehmigung.
+markdown
+# Ubertooth Ultimate Toolkit  
+All-in-One Bluetooth/BLE Hacking Tool for Ubertooth One  
 
-📌 GitHub-Repo
-🔗 https://github.com/Brunoido90/ubertooth_hack
+## 📋 Features  
+- Bluetooth Classic & BLE Sniffing  
+- Custom Attacks (BLE Spam, Audio Injection)  
+- Spectrum Analyzer & Firmware Recovery  
 
-Füge eine README.md und requirements.txt hinzu, um die Installation zu vereinfachen.
+## ⚙️ Installation  
+```bash
+sudo apt install ubertooth libubertooth-dev libbtbb-dev sox  
+pip install colorama pyusb
 
-🛡️ Verantwortungsvolle Nutzung
-Dieses Projekt dient ausschließlich Forschungszwecken. Der Autor übernimmt keine Haftung für Missbrauch.
+⚠️ Rechtlicher Haftungsausschluss (Disclaimer) für GitHub
+Der folgende Text kann im README.md oder einer separaten LICENSE/DISCLAIMER-Datei eingefügt werden. Er sollte klarstellen, dass der Autor keine Verantwortung für Missbrauch oder Schäden übernimmt:
 
-Happy (ethical) Hacking! 🚀🔊
+📜 Haftungsausschluss / Legal Disclaimer
+markdown
+## ⚠️ Rechtliche Hinweise / Disclaimer  
+Der Autor dieses Projekts übernimmt **keine Verantwortung** für die Verwendung dieser Software.  
+- Dieses Tool ist **ausschließlich für legale Sicherheitsanalysen und autorisierte Penetrationstests** vorgesehen.  
+- **Missbrauch kann strafbar sein** (z. B. unbefugtes Abhören, Störung von Funkverbindungen).  
+- Nutzer handeln **auf eigene Verantwortung** und müssen geltende Gesetze (z. B. **FCC, StGB**) beachten.  
+- Der Autor distanziert sich ausdrücklich von jeglicher illegaler Nutzung.  
+
+**Nur für Bildungszwecke und ethische Sicherheitsforschung!**  
+🔒 Wichtige Punkte für GitHub
+Lizenz hinzufügen (z. B. GPLv3/MIT → Klare Nutzungsbedingungen).
+
+Ethik-Hinweis im README (z. B.):
+
+markdown
+## 🛡️ Ethische Nutzung  
+Dieses Projekt dient der **Cybersecurity-Forschung**.  
+- **Erlaubt**: Tests an eigenen Geräten oder mit ausdrücklicher Erlaubnis.  
+- **Verboten**: Angriffe auf fremde Systeme ohne Zustimmung.  
+Keine Garantie auf Funktionalität/Sicherheit (Standard in Open-Source-Lizenzen).
