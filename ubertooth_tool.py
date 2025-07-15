@@ -1,6 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # UBERTOOTH ULTIMATE TOOLKIT v666 - ALL FUNCTIONS INCLUDED
+#
+# MIT License
+# 
+# Copyright (c) 2023 [Your Name or Organization]
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
 import os
 import sys
@@ -65,23 +87,18 @@ class UberUltimate:
         os.system("pkill -9 -f 'ubertooth|hcidump|btmon|sox'")
         sys.exit(0)
 
-    # ===== CORE FUNCTIONS =====
     def scan_devices(self):
         """Scan for all Bluetooth devices"""
         self.show_banner()
         print(f"{Fore.CYAN}🔍 Scanning for targets (20s)...{Style.RESET_ALL}")
         
-        # Start LED blinking
         subprocess.Popen("ubertooth-util -l", shell=True)
         
-        # Run scan
         result = subprocess.run(["ubertooth-scan", "-t", "20"], 
                               capture_output=True, text=True)
         
-        # Stop LED
         subprocess.run("ubertooth-util -L", shell=True)
         
-        # Parse results
         self.targets = []
         for line in result.stdout.split('\n'):
             if 'BD_ADDR' in line:
@@ -91,7 +108,6 @@ class UberUltimate:
         
         return len(self.targets) > 0
 
-    # ===== STANDARD UBERTOOTH FUNCTIONS =====
     def bt_classic_sniff(self, target=None):
         """Sniff Bluetooth Classic traffic"""
         cmd = "ubertooth-bt -A -f"
@@ -125,7 +141,6 @@ class UberUltimate:
             cmd += f" -t {target}"
         self.run_attack(cmd, "Channel Jamming")
 
-    # ===== CUSTOM ATTACKS =====
     def ble_spam(self, count=100):
         """Spam fake BLE devices"""
         self.run_attack(f"ubertooth-btle -a -M -c {count}", f"BLE Spam ({count} fake devices)")
@@ -146,7 +161,6 @@ class UberUltimate:
         """WiFi/Bluetooth coexistence attack"""
         self.run_attack("ubertooth-jam -W -b", "WiFi/Bluetooth Coexistence Attack")
 
-    # ===== ADVANCED FEATURES =====
     def firmware_recovery(self):
         """Reset Ubertooth firmware"""
         print(f"{Fore.YELLOW}⚡ Resetting firmware...{Style.RESET_ALL}")
@@ -336,7 +350,6 @@ class UberUltimate:
             return None
 
 if __name__ == "__main__":
-    # Check dependencies
     required = ['ubertooth-scan', 'ubertooth-bt', 'ubertooth-btle', 'ubertooth-jam', 'sox']
     missing = [cmd for cmd in required if not subprocess.getoutput(f"which {cmd}")]
     if missing:
