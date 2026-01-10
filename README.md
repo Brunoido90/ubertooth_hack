@@ -24,15 +24,15 @@
 bash
 
 # 1. Clone
-git clone https://github.com/yourusername/ubertooth-bulletproof.git
-cd ubertooth-bulletproof
+git clone https://github.com/Brunoido90/ubertooth_hack/blob/main/ubertooth_tool.py
+cd ubertooth_tool.py
 
 # 2. Ubertooth Setup (Ubuntu/Debian)
 sudo apt update
 sudo apt install ubertooth libubertooth-dev libbtbb-dev
 
 # 3. RUN (NEVER FAILS)
-sudo python3 ubertooth.py
+sudo python3 ubertooth_tool.py
 
 📱 SCREENSHOTS
 
