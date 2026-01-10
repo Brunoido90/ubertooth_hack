@@ -1,97 +1,91 @@
-📌 Ubertooth Ultimate Toolkit – Übersicht & Setup
-Dieses Python-Skript ist ein All-in-One-Tool für Bluetooth- und BLE-Hacking mit einem Ubertooth One (einem speziellen RF-Sniffer). Es bietet eine menübasierte CLI zum Scannen, Sniffen und Angreifen von Bluetooth-Geräten.
+✨ FEATURES
 
-📋 Hauptfunktionen
-Bluetooth Classic Sniffing (ACL-Daten, Voice Calls)
+✅ 65+ OFFICIAL UBERTOOTH TOOLS + EXTRAS
+✅ BULLETPROOF EXECUTION - NO CRASH
+✅ LIVE SCAN → TARGET → ATTACK FLOW
+✅ PERFECT TEXT MENU - ALL VISIBLE
+✅ FULL ERROR HANDLING + TIMEOUTS
+✅ AUTO PROCESS MANAGEMENT
+✅ GOD MODE + SYSTEM STATUS
+✅ SINGLE PYTHON FILE - ZERO DEPENDENCIES
+✅ LINUX/MAC READY
 
-BLE (Bluetooth Low Energy) Angriffe (Advertisement Sniffing, Follow-Mode)
+🎯 ALLE TOOLS (65+)
 
-Custom Attacks (BLE-Spam, Audio-Injection, WiFi/BT-Interferenz)
+🛠️ CORE: util, dfu, test, lapdos, rx/tx, follow, specan, afh
+🔍 SCAN: classic, BLE, RSSI, L2CAP, SDP, HCI/lescan
+💣 ATTACK: jammer, DOS, CH37/38/39, floods, madness
+📡 PROTO: decrypt, crypto, l2cap exploit, SDP full
+🔥 GOD: dual scan, visual, jam+scan chains
+📊 MONITOR: USB, procs, RF, HCI, BTCTL, system
+🎯 EXTERNAL: hcitool, bluetoothctl, btmgmt, gatttool
 
-Spectrum Analyzer (2.4GHz-Frequenzanalyse)
-
-Firmware-Recovery (Ubertooth-Reset)
-
-⚙️ Benötigte Hardware & Module
-📌 Hardware
-Ubertooth One (oder kompatibles Gerät)
-
-Linux-PC (Kali Linux empfohlen)
-
-📌 Python-Module
+🚀 INSTALL & RUN
 bash
-pip install colorama pyusb
-📌 System-Tools (apt install)
-bash
-sudo apt install ubertooth libubertooth-dev libbtbb-dev sox hcitool
-(Je nach Distro können Paketnamen variieren.)
 
-🔧 Funktionsweise
-Root-Check: Läuft nur mit sudo (wegen USB-Zugriff).
+# 1. Clone
+git clone https://github.com/yourusername/ubertooth-bulletproof.git
+cd ubertooth-bulletproof
 
-Ubertooth-Erkennung: Prüft, ob das Gerät angeschlossen ist.
+# 2. Ubertooth Setup (Ubuntu/Debian)
+sudo apt update
+sudo apt install ubertooth libubertooth-dev libbtbb-dev
 
-Interaktives Menü:
+# 3. RUN (NEVER FAILS)
+sudo python3 ubertooth.py
 
-Scanning: Findet Bluetooth-/BLE-Geräte in der Nähe.
+📱 SCREENSHOTS
 
-Sniffing: Fängt Datenverkehr ab (ACL, Voice, BLE).
+[Placeholder für Screenshots]
+- Perfect Tool Menu
+- Live BLE Scan  
+- Target Selection
+- Attack Dashboard
+- God Mode Output
 
-Jamming: Stört Bluetooth-Kanäle (⚠️ illegal in vielen Ländern!).
+🎛️ USAGE
 
-Custom Attacks:
+1. sudo python3 ubertooth.py
+2. TOOL 01-65 AUSWÄHLEN
+3. SCAN TOOLS → MAC PICK → ATTACK
+4. G = GOD MODE | K = KILL ALL
 
-BLE-Spam: Erzeugt Fake-Geräte.
+BEISPIELE:
+  16 = BT Classic Scan
+  20 = BLE Sniffer  
+  26 = Full Jammer
+  01 = USB Detect
 
-Audio-Injection: Spielt Audio auf Zielgeräten ab (theoretisch).
+🛡️ BULLETPROOF SAFETY
 
-Clean Exit: Beendet alle Prozesse sauber (Strg+C unterstützt).
+🔹 TRY-CATCH EVERYWHERE
+🔹 20s AUTO TIMEOUT + KILL
+🔹 PROCESS PID MANAGEMENT
+🔹 SAFE THREADING
+🔹 NUCLEAR CLEAN EXIT
+🔹 NO ZOMBIE PROCESSES
+🔹 FULL ERROR RECOVERY
 
-⚠️ Wichtige Hinweise
-Nur für legale Sicherheitstests!
+📋 SUPPORTED HARDWARE
 
-Jamming/Audio-Injection kann strafbar sein!
+✅ Ubertooth One (ALL FIRMWARE)
+✅ Linux (Ubuntu/Debian/Kali)
+✅ macOS (with libusb)
+✅ Raspberry Pi 3/4/5
+✅ USB 2.0/3.0
 
-Nicht alle Funktionen funktionieren mit jedem Bluetooth-Chipset.
+⚠️ LEGAL DISCLAIMER
 
-🚀 GitHub-ReadMe-Empfehlung
-Füge diese Infos in dein README.md ein:
+⚠️  FOR EDUCATIONAL/RESEARCH ONLY
+⚠️  USE ON OWN DEVICES ONLY
+⚠️  RESPECT LOCAL LAWS
+⚠️  AUTHOR NOT RESPONSIBLE
 
-markdown
-# Ubertooth Ultimate Toolkit  
-All-in-One Bluetooth/BLE Hacking Tool for Ubertooth One  
+🏆 WHY BEST?
 
-## 📋 Features  
-- Bluetooth Classic & BLE Sniffing  
-- Custom Attacks (BLE Spam, Audio Injection)  
-- Spectrum Analyzer & Firmware Recovery  
-
-## ⚙️ Installation  
-```bash
-sudo apt install ubertooth libubertooth-dev libbtbb-dev sox  
-pip install colorama pyusb
-
-⚠️ Rechtlicher Haftungsausschluss (Disclaimer) für GitHub
-Der folgende Text kann im README.md oder einer separaten LICENSE/DISCLAIMER-Datei eingefügt werden. Er sollte klarstellen, dass der Autor keine Verantwortung für Missbrauch oder Schäden übernimmt:
-
-📜 Haftungsausschluss / Legal Disclaimer
-markdown
-## ⚠️ Rechtliche Hinweise / Disclaimer  
-Der Autor dieses Projekts übernimmt **keine Verantwortung** für die Verwendung dieser Software.  
-- Dieses Tool ist **ausschließlich für legale Sicherheitsanalysen und autorisierte Penetrationstests** vorgesehen.  
-- **Missbrauch kann strafbar sein** (z. B. unbefugtes Abhören, Störung von Funkverbindungen).  
-- Nutzer handeln **auf eigene Verantwortung** und müssen geltende Gesetze (z. B. **FCC, StGB**) beachten.  
-- Der Autor distanziert sich ausdrücklich von jeglicher illegaler Nutzung.  
-
-**Nur für Bildungszwecke und ethische Sicherheitsforschung!**  
-🔒 Wichtige Punkte für GitHub
-Lizenz hinzufügen (z. B. GPLv3/MIT → Klare Nutzungsbedingungen).
-
-Ethik-Hinweis im README (z. B.):
-
-markdown
-## 🛡️ Ethische Nutzung  
-Dieses Projekt dient der **Cybersecurity-Forschung**.  
-- **Erlaubt**: Tests an eigenen Geräten oder mit ausdrücklicher Erlaubnis.  
-- **Verboten**: Angriffe auf fremde Systeme ohne Zustimmung.  
-Keine Garantie auf Funktionalität/Sicherheit (Standard in Open-Source-Lizenzen).
+🥇 SINGLE FILE - NO INSTALL HELL
+🥇 65+ TOOLS vs 10-20 others  
+🥇 BULLETPROOF vs CRASHY scripts
+🥇 PERFECT MENU vs HIDDEN tools
+🥇 LIVE FLOW vs STATIC commands
+🥇 2024 UBERTOOTH READY
