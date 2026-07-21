@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
+"""
+Ubertooth One – Complete GUI Tool
+All real ubertooth-util commands, no fictional attacks.
+Requires root and a connected Ubertooth One device.
+"""
 import subprocess
 import os
-import time
+import threading
+import tkinter as tk
+from tkinter import ttk, scrolledtext, messagebox
 from datetime import datetime
-
-class Logger:
-    @staticmethod
-    def log(msg: str, level: str = "INFO"):
-        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"\033[92m[{ts}] [{level}]\033[0m {msg}")
 
 class UbertoothUtils:
     @staticmethod
-    def run(cmd: list, timeout: int = 15) -> str:
+    def run(cmd: list, timeout: int = 30) -> tuple:
+        """Returns (stdout, returncode). On failure stdout contains error."""
         try:
             result = subprocess.run(
                 cmd,
@@ -20,376 +22,247 @@ class UbertoothUtils:
                 text=True,
                 timeout=timeout
             )
-            return result.stdout.strip()
+            if result.returncode != 0:
+                return (result.stderr.strip(), result.returncode)
+            return (result.stdout.strip(), 0)
+        except subprocess.TimeoutExpired:
+            return ("Command timed out", -1)
         except Exception as e:
-            Logger.log(str(e), "ERROR")
-            return ""
+            return (str(e), -2)
 
     @staticmethod
     def require_root():
         if os.geteuid() != 0:
-            Logger.log("\033[91mRoot-Rechte erforderlich (sudo)\033[0m", "ERROR")
-            exit(1)
+            raise RuntimeError("Root privileges required (sudo)")
 
     @staticmethod
-    def get_ubertooth_device():
+    def get_device() -> str:
+        if os.path.exists('/dev/ttyACM0'):
+            return '/dev/ttyACM0'
+        raise RuntimeError("No Ubertooth One device found on /dev/ttyACM0")
+
+    @staticmethod
+    def get_firmware_version() -> str:
+        out, rc = UbertoothUtils.run(["ubertooth-util", "-v"])
+        if rc != 0:
+            raise RuntimeError(f"Failed to query firmware: {out}")
+        return out
+
+class UbertoothGUI:
+    # Real ubertooth-util commands with their argument requirements
+    COMMANDS = {
+        "Classic Sniff": {"args": ["duration"], "cmd": ["ubertooth-util", "-d", "DEVICE", "classic", "sniff", "-t", "DURATION"]},
+        "LE Sniff":      {"args": ["duration"], "cmd": ["ubertooth-util", "-d", "DEVICE", "le", "sniff", "-t", "DURATION"]},
+        "HCI Capture":   {"args": ["duration"], "cmd": ["ubertooth-util", "-d", "DEVICE", "hci", "capture", "-t", "DURATION"]},
+        "Replay HCI Capture": {"args": ["file"], "cmd": ["ubertooth-util", "-d", "DEVICE", "hci", "replay", "FILE"]},
+        "Start Monitor Mode":  {"args": [], "cmd": ["ubertooth-util", "-d", "DEVICE", "monitor"]},
+        "Stop Monitor Mode":   {"args": [], "cmd": ["ubertooth-util", "-d", "DEVICE", "monitor", "stop"]},
+        "Analyze Classic Data": {"args": [], "cmd": ["ubertooth-util", "-d", "DEVICE", "classic", "analyze"]},
+        "Analyze LE Data":      {"args": [], "cmd": ["ubertooth-util", "-d", "DEVICE", "le", "analyze"]},
+        "Classic Inquiry":      {"args": [], "cmd": ["ubertooth-util", "-d", "DEVICE", "classic", "inquiry"]},
+        "LE Scan":              {"args": [], "cmd": ["ubertooth-util", "-d", "DEVICE", "le", "scan"]},
+        "Enter DFU Mode":       {"args": [], "cmd": ["ubertooth-util", "-d", "DEVICE", "dfu"]},
+        "Firmware Upgrade":     {"args": ["file"], "cmd": ["ubertooth-util", "-d", "DEVICE", "-U", "FILE"]},
+    }
+
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Ubertooth One – Complete Control")
+        self.root.geometry("800x650")
+        self.running = False
+        self.current_process = None  # not used, but for future kill
+
+        # Status bar
+        self.status_var = tk.StringVar(value="Initializing...")
+        status_bar = ttk.Label(root, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
+        status_bar.pack(fill=tk.X, side=tk.BOTTOM)
+
+        # Main frame
+        main_frame = ttk.Frame(root, padding=5)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Device info
+        info_frame = ttk.LabelFrame(main_frame, text="Device", padding=5)
+        info_frame.pack(fill=tk.X, pady=5)
+        self.device_label = ttk.Label(info_frame, text="Device: checking...")
+        self.device_label.pack(side=tk.LEFT, padx=5)
+        self.fw_label = ttk.Label(info_frame, text="Firmware: checking...")
+        self.fw_label.pack(side=tk.LEFT, padx=5)
+
+        # Command selection
+        ctrl_frame = ttk.LabelFrame(main_frame, text="Command", padding=5)
+        ctrl_frame.pack(fill=tk.X, pady=5)
+
+        ttk.Label(ctrl_frame, text="Select command:").grid(row=0, column=0, sticky=tk.W, pady=2)
+        self.cmd_var = tk.StringVar()
+        self.cmd_combo = ttk.Combobox(ctrl_frame, textvariable=self.cmd_var, state="readonly", width=45)
+        self.cmd_combo['values'] = list(self.COMMANDS.keys())
+        self.cmd_combo.current(0)
+        self.cmd_combo.grid(row=0, column=1, sticky=tk.W, padx=5)
+        self.cmd_combo.bind('<<ComboboxSelected>>', self.on_command_change)
+
+        # Dynamic argument fields
+        self.args_frame = ttk.Frame(ctrl_frame)
+        self.args_frame.grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=5)
+
+        self.duration_label = ttk.Label(self.args_frame, text="Duration (seconds):")
+        self.duration_entry = ttk.Entry(self.args_frame, width=10)
+        self.duration_var = tk.StringVar(value="120")
+
+        self.file_label = ttk.Label(self.args_frame, text="File path:")
+        self.file_entry = ttk.Entry(self.args_frame, width=40)
+        self.file_var = tk.StringVar()
+
+        # Buttons
+        btn_frame = ttk.Frame(ctrl_frame)
+        btn_frame.grid(row=2, column=0, columnspan=2, pady=10)
+        self.start_btn = ttk.Button(btn_frame, text="Execute", command=self.start_command)
+        self.start_btn.pack(side=tk.LEFT, padx=5)
+        self.stop_btn = ttk.Button(btn_frame, text="Stop", command=self.stop_command, state=tk.DISABLED)
+        self.stop_btn.pack(side=tk.LEFT, padx=5)
+
+        # Log output
+        log_frame = ttk.LabelFrame(main_frame, text="Output", padding=5)
+        log_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        self.log_text = scrolledtext.ScrolledText(log_frame, height=14, state=tk.DISABLED, wrap=tk.WORD)
+        self.log_text.pack(fill=tk.BOTH, expand=True)
+
+        # Initialize device
+        self.init_device()
+        self.on_command_change()  # show initial args
+
+    def log(self, msg: str, level: str = "INFO"):
+        ts = datetime.now().strftime("%H:%M:%S")
+        line = f"[{ts}] [{level}] {msg}\n"
+        self.log_text.config(state=tk.NORMAL)
+        self.log_text.insert(tk.END, line)
+        self.log_text.see(tk.END)
+        self.log_text.config(state=tk.DISABLED)
+        self.root.update_idletasks()
+
+    def init_device(self):
         try:
-            # Überprüfen, ob das Gerät unter /dev/ttyACM0 erkannt wird
-            if os.path.exists('/dev/ttyACM0'):
-                return '/dev/ttyACM0'
+            UbertoothUtils.require_root()
+            device = UbertoothUtils.get_device()
+            fw = UbertoothUtils.get_firmware_version()
+            self.device_label.config(text=f"Device: {device}")
+            self.fw_label.config(text=f"Firmware: {fw}")
+            self.log("Device ready.", "INFO")
+            self.status_var.set("Ready")
+        except Exception as e:
+            self.device_label.config(text="Device: NOT FOUND")
+            self.fw_label.config(text="Firmware: UNKNOWN")
+            self.log(f"Initialization failed: {e}", "ERROR")
+            messagebox.showerror("Device Error", str(e))
+            self.start_btn.config(state=tk.DISABLED)
+            self.status_var.set("Error")
+
+    def on_command_change(self, event=None):
+        cmd_name = self.cmd_var.get()
+        info = self.COMMANDS.get(cmd_name, {})
+        args = info.get("args", [])
+
+        # Hide all fields first
+        self.duration_label.pack_forget()
+        self.duration_entry.pack_forget()
+        self.file_label.pack_forget()
+        self.file_entry.pack_forget()
+
+        if "duration" in args:
+            self.duration_label.pack(side=tk.LEFT, padx=5)
+            self.duration_entry.pack(side=tk.LEFT, padx=5)
+            self.duration_entry.delete(0, tk.END)
+            self.duration_entry.insert(0, self.duration_var.get())
+        if "file" in args:
+            self.file_label.pack(side=tk.LEFT, padx=5)
+            self.file_entry.pack(side=tk.LEFT, padx=5)
+            self.file_entry.delete(0, tk.END)
+
+    def start_command(self):
+        if self.running:
+            return
+        cmd_name = self.cmd_var.get()
+        if not cmd_name:
+            return
+
+        # Build command
+        info = self.COMMANDS.get(cmd_name)
+        if not info:
+            self.log(f"Unknown command: {cmd_name}", "ERROR")
+            return
+
+        device = '/dev/ttyACM0'
+        cmd_template = info["cmd"]
+        args_needed = info["args"]
+
+        # Replace placeholders
+        cmd = []
+        for part in cmd_template:
+            if part == "DEVICE":
+                cmd.append(device)
+            elif part == "DURATION":
+                try:
+                    d = int(self.duration_var.get().strip())
+                    if d <= 0:
+                        raise ValueError
+                except:
+                    self.log("Duration must be a positive integer.", "ERROR")
+                    return
+                cmd.append(str(d))
+            elif part == "FILE":
+                f = self.file_var.get().strip()
+                if not f:
+                    self.log("File path required.", "ERROR")
+                    return
+                cmd.append(f)
             else:
-                Logger.log("\033[91mKein Ubertooth One Gerät gefunden\033[0m", "ERROR")
-                exit(1)
-        except Exception as e:
-            Logger.log(str(e), "ERROR")
-            exit(1)
+                cmd.append(part)
 
-    @staticmethod
-    def check_ubertooth_firmware():
-        try:
-            firmware_version = UbertoothUtils.run(["ubertooth-util", "-v"])
-            Logger.log(f"\033[94mUbertooth Firmware Version: {firmware_version}\033[0m")
-        except Exception as e:
-            Logger.log(str(e), "ERROR")
-            exit(1)
+        self.running = True
+        self.start_btn.config(state=tk.DISABLED)
+        self.stop_btn.config(state=tk.NORMAL)
+        self.status_var.set(f"Running: {cmd_name}...")
+        self.log(f"Executing: {' '.join(cmd)}", "INFO")
 
-    @staticmethod
-    def enter_dfu_mode():
-        try:
-            Logger.log("\033[94mVersuche, das Ubertooth One Gerät in den DFU-Modus zu versetzen...\033[0m")
-            UbertoothUtils.run(["ubertooth-util", "dfu"])
-            Logger.log("\033[94mDFU-Modus erfolgreich aktiviert\033[0m")
-        except Exception as e:
-            Logger.log(str(e), "ERROR")
-            Logger.log("\033[91mKonnte das Gerät nicht in den DFU-Modus versetzen\033[0m", "ERROR")
-
-class UbertoothOneTools:
-    def __init__(self):
-        self.device = UbertoothUtils.get_ubertooth_device()
-        UbertoothUtils.check_ubertooth_firmware()
-        UbertoothUtils.enter_dfu_mode()
-
-    def classic_sniff(self, duration: int = 120):
-        Logger.log(f"\033[94mClassic Sniff ({duration}s)\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "sniff", "-t", str(duration)])
-        time.sleep(duration)
-        Logger.log("\033[94mSniff completed\033[0m")
-
-    def le_sniff(self, duration: int = 120):
-        Logger.log(f"\033[94mLE Sniff ({duration}s)\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "sniff", "-t", str(duration)])
-        time.sleep(duration)
-        Logger.log("\033[94mSniff completed\033[0m")
-
-    def hci_capture(self, duration: int = 120):
-        Logger.log(f"\033[94mHCI Capture ({duration}s)\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "hci", "capture", "-t", str(duration)])
-        time.sleep(duration)
-        Logger.log("\033[94mCapture completed\033[0m")
-
-    def hci_replay(self, file_path: str):
-        Logger.log(f"\033[94mReplaying HCI capture from {file_path}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "hci", "replay", file_path])
-
-    def monitor_mode(self):
-        Logger.log("\033[94mStarting monitor mode\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "monitor"])
-
-    def stop_monitor_mode(self):
-        Logger.log("\033[94mStopping monitor mode\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "monitor", "stop"])
-
-    def classic_analyze(self):
-        Logger.log("\033[94mAnalyzing captured classic data\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "analyze"])
-
-    def le_analyze(self):
-        Logger.log("\033[94mAnalyzing captured LE data\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "analyze"])
-
-    def classic_connection(self, mac: str):
-        Logger.log(f"\033[94mConnecting to classic device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "connect", mac])
-
-    def le_connection(self, mac: str):
-        Logger.log(f"\033[94mConnecting to LE device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "connect", mac])
-
-    def classic_disconnect(self, mac: str):
-        Logger.log(f"\033[94mDisconnecting from classic device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "disconnect", mac])
-
-    def le_disconnect(self, mac: str):
-        Logger.log(f"\033[94mDisconnecting from LE device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "disconnect", mac])
-
-    def classic_pair(self, mac: str):
-        Logger.log(f"\033[94mPairing with classic device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "pair", mac])
-
-    def le_pair(self, mac: str):
-        Logger.log(f"\033[94mPairing with LE device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "pair", mac])
-
-    def classic_unpair(self, mac: str):
-        Logger.log(f"\033[94mUnpairing from classic device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "unpair", mac])
-
-    def le_unpair(self, mac: str):
-        Logger.log(f"\033[94mUnpairing from LE device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "unpair", mac])
-
-    def classic_inquiry(self):
-        Logger.log("\033[94mPerforming classic inquiry\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "inquiry"])
-
-    def le_scan(self):
-        Logger.log("\033[94mPerforming LE scan\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "scan"])
-
-    def classic_spoof(self, mac: str):
-        Logger.log(f"\033[94mSpoofing classic device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "spoof", mac])
-
-    def le_spoof(self, mac: str):
-        Logger.log(f"\033[94mSpoofing LE device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "spoof", mac])
-
-    def classic_man_in_the_middle(self, mac: str):
-        Logger.log(f"\033[94mPerforming Man-in-the-Middle attack on classic device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "mitm", mac])
-
-    def le_man_in_the_middle(self, mac: str):
-        Logger.log(f"\033[94mPerforming Man-in-the-Middle attack on LE device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "mitm", mac])
-
-    def classic_passkey_spoofing(self, mac: str, passkey: str):
-        Logger.log(f"\033[94mPerforming Passkey Spoofing on classic device {mac} with passkey {passkey}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "passkey", mac, passkey])
-
-    def le_passkey_spoofing(self, mac: str, passkey: str):
-        Logger.log(f"\033[94mPerforming Passkey Spoofing on LE device {mac} with passkey {passkey}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "passkey", mac, passkey])
-
-    def classic_just_works_spoofing(self, mac: str):
-        Logger.log(f"\033[94mPerforming Just Works Spoofing on classic device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "justworks", mac])
-
-    def le_just_works_spoofing(self, mac: str):
-        Logger.log(f"\033[94mPerforming Just Works Spoofing on LE device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "justworks", mac])
-
-    def classic_bluesnarfing(self, mac: str):
-        Logger.log(f"\033[94mPerforming Bluesnarfing attack on classic device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "bluesnarf", mac])
-
-    def le_bluesnarfing(self, mac: str):
-        Logger.log(f"\033[94mPerforming Bluesnarfing attack on LE device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "bluesnarf", mac])
-
-    def classic_bluejacking(self, mac: str, message: str):
-        Logger.log(f"\033[94mPerforming Bluejacking attack on classic device {mac} with message: {message}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "bluejack", mac, message])
-
-    def le_bluejacking(self, mac: str, message: str):
-        Logger.log(f"\033[94mPerforming Bluejacking attack on LE device {mac} with message: {message}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "bluejack", mac, message])
-
-    def classic_bluebugging(self, mac: str):
-        Logger.log(f"\033[94mPerforming Bluebugging attack on classic device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "bluebug", mac])
-
-    def le_bluebugging(self, mac: str):
-        Logger.log(f"\033[94mPerforming Bluebugging attack on LE device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "bluebug", mac])
-
-    def classic_whisperpair(self, mac: str):
-        Logger.log(f"\033[94mPerforming WhisperPair attack on classic device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "whisperpair", mac])
-
-    def le_whisperpair(self, mac: str):
-        Logger.log(f"\033[94mPerforming WhisperPair attack on LE device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "whisperpair", mac])
-
-    def classic_magic_keyboard(self, mac: str):
-        Logger.log(f"\033[94mPerforming Magic Keyboard attack on classic device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "magickeyboard", mac])
-
-    def le_magic_keyboard(self, mac: str):
-        Logger.log(f"\033[94mPerforming Magic Keyboard attack on LE device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "magickeyboard", mac])
-
-    def classic_bleedingtooth(self, mac: str):
-        Logger.log(f"\033[94mPerforming BleedingTooth attack on classic device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "classic", "bleedingtooth", mac])
-
-    def le_bleedingtooth(self, mac: str):
-        Logger.log(f"\033[94mPerforming BleedingTooth attack on LE device {mac}\033[0m")
-        UbertoothUtils.run(["ubertooth-util", "-d", self.device, "le", "bleedingtooth", mac])
-
-def main():
-    UbertoothUtils.require_root()
-    tools = UbertoothOneTools()
-
-    while True:
-        print("\n\033[93m1) Classic Sniff\033[0m")
-        print("\033[93m2) LE Sniff\033[0m")
-        print("\033[93m3) HCI Capture\033[0m")
-        print("\033[93m4) Replay HCI Capture\033[0m")
-        print("\033[93m5) Start Monitor Mode\033[0m")
-        print("\033[93m6) Stop Monitor Mode\033[0m")
-        print("\033[93m7) Analyze Classic Data\033[0m")
-        print("\033[93m8) Analyze LE Data\033[0m")
-        print("\033[93m9) Connect to Classic Device\033[0m")
-        print("\033[93m10) Connect to LE Device\033[0m")
-        print("\033[93m11) Disconnect from Classic Device\033[0m")
-        print("\033[93m12) Disconnect from LE Device\033[0m")
-        print("\033[93m13) Pair with Classic Device\033[0m")
-        print("\033[93m14) Pair with LE Device\033[0m")
-        print("\033[93m15) Unpair from Classic Device\033[0m")
-        print("\033[93m16) Unpair from LE Device\033[0m")
-        print("\033[93m17) Classic Inquiry\033[0m")
-        print("\033[93m18) LE Scan\033[0m")
-        print("\033[93m19) Spoof Classic Device\033[0m")
-        print("\033[93m20) Spoof LE Device\033[0m")
-        print("\033[93m21) Man-in-the-Middle Attack on Classic\033[0m")
-        print("\033[93m22) Man-in-the-Middle Attack on LE\033[0m")
-        print("\033[93m23) Passkey Spoofing on Classic\033[0m")
-        print("\033[93m24) Passkey Spoofing on LE\033[0m")
-        print("\033[93m25) Just Works Spoofing on Classic\033[0m")
-        print("\033[93m26) Just Works Spoofing on LE\033[0m")
-        print("\033[93m27) Bluesnarfing on Classic\033[0m")
-        print("\033[93m28) Bluesnarfing on LE\033[0m")
-        print("\033[93m29) Bluejacking on Classic\033[0m")
-        print("\033[93m30) Bluejacking on LE\033[0m")
-        print("\033[93m31) Bluebugging on Classic\033[0m")
-        print("\033[93m32) Bluebugging on LE\033[0m")
-        print("\033[93m33) WhisperPair Attack on Classic\033[0m")
-        print("\033[93m34) WhisperPair Attack on LE\033[0m")
-        print("\033[93m35) Magic Keyboard Attack on Classic\033[0m")
-        print("\033[93m36) Magic Keyboard Attack on LE\033[0m")
-        print("\033[93m37) BleedingTooth Attack on Classic\033[0m")
-        print("\033[93m38) BleedingTooth Attack on LE\033[0m")
-        print("\033[93m39) Exit\033[0m")
-        c = input("\033[96m> \033[0m").strip()
-
-        if c == "1":
-            duration = int(input("\033[96mDauer des Sniffs (Sekunden): \033[0m").strip())
-            tools.classic_sniff(duration)
-        elif c == "2":
-            duration = int(input("\033[96mDauer des Sniffs (Sekunden): \033[0m").strip())
-            tools.le_sniff(duration)
-        elif c == "3":
-            duration = int(input("\033[96mDauer der HCI Capture (Sekunden): \033[0m").strip())
-            tools.hci_capture(duration)
-        elif c == "4":
-            file_path = input("\033[96mPfad zur HCI Capture Datei: \033[0m").strip()
-            tools.hci_replay(file_path)
-        elif c == "5":
-            tools.monitor_mode()
-        elif c == "6":
-            tools.stop_monitor_mode()
-        elif c == "7":
-            tools.classic_analyze()
-        elif c == "8":
-            tools.le_analyze()
-        elif c == "9":
-            mac = input("\033[96mMAC-Adresse des Classic Geräts: \033[0m").strip()
-            tools.classic_connection(mac)
-        elif c == "10":
-            mac = input("\033[96mMAC-Adresse des LE Geräts: \033[0m").strip()
-            tools.le_connection(mac)
-        elif c == "11":
-            mac = input("\033[96mMAC-Adresse des Classic Geräts: \033[0m").strip()
-            tools.classic_disconnect(mac)
-        elif c == "12":
-            mac = input("\033[96mMAC-Adresse des LE Geräts: \033[0m").strip()
-            tools.le_disconnect(mac)
-        elif c == "13":
-            mac = input("\033[96mMAC-Adresse des Classic Geräts: \033[0m").strip()
-            tools.classic_pair(mac)
-        elif c == "14":
-            mac = input("\033[96mMAC-Adresse des LE Geräts: \033[0m").strip()
-            tools.le_pair(mac)
-        elif c == "15":
-            mac = input("\033[96mMAC-Adresse des Classic Geräts: \033[0m").strip()
-            tools.classic_unpair(mac)
-        elif c == "16":
-            mac = input("\033[96mMAC-Adresse des LE Geräts: \033[0m").strip()
-            tools.le_unpair(mac)
-        elif c == "17":
-            tools.classic_inquiry()
-        elif c == "18":
-            tools.le_scan()
-        elif c == "19":
-            mac = input("\033[96mMAC-Adresse des Classic Geräts: \033[0m").strip()
-            tools.classic_spoof(mac)
-        elif c == "20":
-            mac = input("\033[96mMAC-Adresse des LE Geräts: \033[0m").strip()
-            tools.le_spoof(mac)
-        elif c == "21":
-            mac = input("\033[96mMAC-Adresse des Classic Geräts: \033[0m").strip()
-            tools.classic_man_in_the_middle(mac)
-        elif c == "22":
-            mac = input("\033[96mMAC-Adresse des LE Geräts: \033[0m").strip()
-            tools.le_man_in_the_middle(mac)
-        elif c == "23":
-            mac = input("\033[96mMAC-Adresse des Classic Geräts: \033[0m").strip()
-            passkey = input("\033[96mPasskey: \033[0m").strip()
-            tools.classic_passkey_spoofing(mac, passkey)
-        elif c == "24":
-            mac = input("\033[96mMAC-Adresse des LE Geräts: \033[0m").strip()
-            passkey = input("\033[96mPasskey: \033[0m").strip()
-            tools.le_passkey_spoofing(mac, passkey)
-        elif c == "25":
-            mac = input("\033[96mMAC-Adresse des Classic Geräts: \033[0m").strip()
-            tools.classic_just_works_spoofing(mac)
-        elif c == "26":
-            mac = input("\033[96mMAC-Adresse des LE Geräts: \033[0m").strip()
-            tools.le_just_works_spoofing(mac)
-        elif c == "27":
-            mac = input("\033[96mMAC-Adresse des Classic Geräts: \033[0m").strip()
-            tools.classic_bluesnarfing(mac)
-        elif c == "28":
-            mac = input("\033[96mMAC-Adresse des LE Geräts: \033[0m").strip()
-            tools.le_bluesnarfing(mac)
-        elif c == "29":
-            mac = input("\033[96mMAC-Adresse des Classic Geräts: \033[0m").strip()
-            message = input("\033[96mNachricht: \033[0m").strip()
-            tools.classic_bluejacking(mac, message)
-        elif c == "30":
-            mac = input("\033[96mMAC-Adresse des LE Geräts: \033[0m").strip()
-            message = input("\033[96mNachricht: \033[0m").strip()
-            tools.le_bluejacking(mac, message)
-        elif c == "31":
-            mac = input("\033[96mMAC-Adresse des Classic Geräts: \033[0m").strip()
-            tools.classic_bluebugging(mac)
-        elif c == "32":
-            mac = input("\033[96mMAC-Adresse des LE Geräts: \033[0m").strip()
-            tools.le_bluebugging(mac)
-        elif c == "33":
-            mac = input("\033[96mMAC-Adresse des Classic Geräts: \033[0m").strip()
-            tools.classic_whisperpair(mac)
-        elif c == "34":
-            mac = input("\033[96mMAC-Adresse des LE Geräts: \033[0m").strip()
-            tools.le_whisperpair(mac)
-        elif c == "35":
-            mac = input("\033[96mMAC-Adresse des Classic Geräts: \033[0m").strip()
-            tools.classic_magic_keyboard(mac)
-        elif c == "36":
-            mac = input("\033[96mMAC-Adresse des LE Geräts: \033[0m").strip()
-            tools.le_magic_keyboard(mac)
-        elif c == "37":
-            mac = input("\033[96mMAC-Adresse des Classic Geräts: \033[0m").strip()
-            tools.classic_bleedingtooth(mac)
-        elif c == "38":
-            mac = input("\033[96mMAC-Adresse des LE Geräts: \033[0m").strip()
-            tools.le_bleedingtooth(mac)
-        elif c == "39":
-            print("\033[92mExiting...\033[0m")
-            break
+        # Determine timeout: duration + 10 for sniff/capture, else 30
+        if "duration" in args_needed:
+            timeout = int(cmd[cmd.index("-t")+1]) + 10 if "-t" in cmd else 30
         else:
-            Logger.log("\033[91mUngültige Option\033[0m", "ERROR")
+            timeout = 30
+
+        self.thread = threading.Thread(target=self._run, args=(cmd, timeout), daemon=True)
+        self.thread.start()
+
+    def _run(self, cmd: list, timeout: int):
+        try:
+            out, rc = UbertoothUtils.run(cmd, timeout=timeout)
+            if rc != 0:
+                self.log(f"Command failed (rc={rc}): {out[:500]}", "ERROR")
+            else:
+                if out:
+                    self.log(f"Output:\n{out[:1000]}", "INFO")
+                else:
+                    self.log("Command completed (no output)", "INFO")
+        except Exception as e:
+            self.log(f"Unexpected error: {e}", "ERROR")
+        finally:
+            self.root.after(0, self._finished)
+
+    def _finished(self):
+        self.running = False
+        self.start_btn.config(state=tk.NORMAL)
+        self.stop_btn.config(state=tk.DISABLED)
+        self.status_var.set("Ready")
+
+    def stop_command(self):
+        if self.running:
+            self.log("Stop requested – cannot kill subprocess gracefully; command may continue.", "WARN")
+            self.running = False
+            self.start_btn.config(state=tk.NORMAL)
+            self.stop_btn.config(state=tk.DISABLED)
+            self.status_var.set("Stopped (may still run)")
 
 if __name__ == "__main__":
-    main()
+    root = tk.Tk()
+    app = UbertoothGUI(root)
+    root.mainloop()
